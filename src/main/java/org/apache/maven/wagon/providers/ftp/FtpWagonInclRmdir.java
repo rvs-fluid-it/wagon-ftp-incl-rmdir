@@ -39,6 +39,8 @@ import org.apache.maven.wagon.authentication.AuthenticationInfo;
 import org.apache.maven.wagon.authorization.AuthorizationException;
 import org.apache.maven.wagon.repository.RepositoryPermissions;
 import org.apache.maven.wagon.resource.Resource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -63,6 +65,7 @@ public class FtpWagonInclRmdir
 {
     private List<String> remoteRemovedDirectories = new LinkedList<String>();
     private FTPClient ftp;
+    private final Logger logger = LoggerFactory.getLogger(FtpWagonInclRmdir.class);
 
     /**
      * @plexus.configuration default-value="true"
@@ -87,6 +90,7 @@ public class FtpWagonInclRmdir
     protected void openConnectionInternal()
         throws ConnectionException, AuthenticationException
     {
+      logger.info("Open ftp connection ...");
       this.remoteRemovedDirectories = new LinkedList<String>();
 
       AuthenticationInfo authInfo = getAuthenticationInfo();
@@ -242,6 +246,7 @@ public class FtpWagonInclRmdir
     public void closeConnection()
         throws ConnectionException
     {
+        logger.info("Close ftp connection ...");
         this.remoteRemovedDirectories = new LinkedList<String>();
 
         if ( ftp != null && ftp.isConnected() )
@@ -512,6 +517,11 @@ public class FtpWagonInclRmdir
 
   @Override
   public void put(File source, String resourceName) throws TransferFailedException, ResourceDoesNotExistException, AuthorizationException {
+    logger.info("Put [" +
+        getRepository().getBasedir() +
+        "/" +
+        resourceName +
+        "] ...");
     try {
       ensureBaseFolderIsCleanedUp(resourceName);
     } catch (IOException e) {
@@ -524,7 +534,8 @@ public class FtpWagonInclRmdir
     if (resourceName.contains("/")) {
       String[] folders =  resourceName.split("/");
       if (!remoteRemovedDirectories.contains(folders[0])) {
-        ftp.removeDirectory(folders[0]);
+        FtpUtil.removeDirectory(ftp, getRepository().getBasedir(), folders[0]);
+        logger.info("Folder [" + folders[0] + "] was remotely cleaned up ...");
         remoteRemovedDirectories.add(folders[0]);
       }
     }
